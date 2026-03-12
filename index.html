@@ -11,93 +11,32 @@
 
     <style>
         :root {
-            --bg:    #080c10;
-            --panel: rgba(8,12,16,0.88);
-            --border:rgba(255,255,255,0.07);
-            --accent:#00e5b0;
-            --accent2:#0099ff;
-            --warn:  #ff6b35;
-            --text:  #e8edf2;
-            --muted: #6b7a8d;
+            --bg:#080c10; --panel:rgba(8,12,16,0.88); --border:rgba(255,255,255,0.07);
+            --accent:#00e5b0; --accent2:#0099ff; --warn:#ff6b35; --text:#e8edf2; --muted:#6b7a8d;
         }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; overflow:hidden; }
-        #cesiumContainer { width:100%; height:100%; }
-
-        #topBar {
-            position:absolute; top:0; left:0; right:0; height:48px;
-            background:var(--panel); border-bottom:1px solid var(--border);
-            backdrop-filter:blur(16px); display:flex; align-items:center;
-            padding:0 20px; gap:16px; z-index:1000;
-        }
-        .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:17px;
-            background:linear-gradient(90deg,var(--accent),var(--accent2));
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .divider { width:1px; height:20px; background:var(--border); }
-        .scene-name { font-size:12px; color:var(--muted); }
-
-        #sidePanel {
-            position:absolute; top:60px; left:12px; width:270px;
-            background:var(--panel); border:1px solid var(--border);
-            border-radius:10px; backdrop-filter:blur(20px); z-index:999; overflow:hidden;
-        }
-        .panel-section { padding:14px 16px; border-bottom:1px solid var(--border); }
-        .panel-section:last-child { border-bottom:none; }
-        .section-label { font-size:9px; font-weight:600; letter-spacing:1.5px;
-            text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
-
-        .layer-item { display:flex; align-items:center; justify-content:space-between;
-            padding:7px 0; cursor:pointer; }
-        .layer-left { display:flex; align-items:center; gap:9px; font-size:11px; color:var(--text); }
-        .layer-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-
-        .toggle { width:30px; height:16px; background:var(--border); border-radius:8px;
-            position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
-        .toggle.on { background:var(--accent); }
-        .toggle::after { content:''; position:absolute; top:2px; left:2px;
-            width:12px; height:12px; background:#fff; border-radius:50%; transition:transform .2s; }
-        .toggle.on::after { transform:translateX(14px); }
-
-        .status-row { display:flex; justify-content:space-between; gap:8px; margin-bottom:4px; }
-        .status-key { color:var(--muted); font-size:11px; }
-        .status-val { color:var(--accent); font-size:10px; text-align:right; }
-
-        #loadBar { height:2px; background:linear-gradient(90deg,var(--accent),var(--accent2));
-            width:0%; transition:width .4s; border-radius:1px; margin-top:8px; }
-
-        #coordBox {
-            position:absolute; bottom:36px; right:12px;
-            background:var(--panel); border:1px solid var(--border);
-            border-radius:8px; padding:8px 14px; font-size:10px;
-            color:var(--muted); backdrop-filter:blur(16px); z-index:999; line-height:1.8;
-        }
-        #coordBox span { color:var(--accent); }
-
-        #featureInfo {
-            position:absolute; bottom:36px; left:295px;
-            background:var(--panel); border:1px solid var(--accent);
-            border-radius:8px; padding:12px 16px; font-size:11px;
-            backdrop-filter:blur(16px); z-index:999; max-width:260px;
-            display:none; line-height:1.8;
-        }
-        .fi-title { font-family:'Syne',sans-serif; font-weight:600; font-size:13px;
-            color:var(--accent); margin-bottom:6px; }
-        .fi-close { position:absolute; top:8px; right:10px;
-            cursor:pointer; color:var(--muted); font-size:14px; }
-
-        #loadingOverlay {
-            position:absolute; inset:0; background:var(--bg);
-            display:flex; flex-direction:column; align-items:center;
-            justify-content:center; z-index:9999; transition:opacity .6s;
-        }
-        .ld-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:32px;
-            background:linear-gradient(90deg,var(--accent),var(--accent2));
-            -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:24px; }
-        .ld-spinner { width:40px; height:40px; border:2px solid var(--border);
-            border-top-color:var(--accent); border-radius:50%;
-            animation:spin .8s linear infinite; margin-bottom:16px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .ld-text { font-size:12px; color:var(--muted); }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;overflow:hidden;}
+        #cesiumContainer{width:100%;height:100%;}
+        #topBar{position:absolute;top:0;left:0;right:0;height:48px;background:var(--panel);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:1000;}
+        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .divider{width:1px;height:20px;background:var(--border);}
+        .scene-name{font-size:12px;color:var(--muted);}
+        #sidePanel{position:absolute;top:60px;left:12px;width:270px;background:var(--panel);border:1px solid var(--border);border-radius:10px;backdrop-filter:blur(20px);z-index:999;overflow:hidden;}
+        .panel-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+        .panel-section:last-child{border-bottom:none;}
+        .section-label{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+        .status-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;}
+        .status-key{color:var(--muted);font-size:11px;}
+        .status-val{color:var(--accent);font-size:10px;text-align:right;}
+        #loadBar{height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .4s;border-radius:1px;margin-top:8px;}
+        #coordBox{position:absolute;bottom:36px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:10px;color:var(--muted);backdrop-filter:blur(16px);z-index:999;line-height:1.8;}
+        #coordBox span{color:var(--accent);}
+        #loadingOverlay{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
+        .ld-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:24px;}
+        .ld-spinner{width:40px;height:40px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .ld-text{font-size:12px;color:var(--muted);}
+        .ld-err{font-size:11px;color:var(--warn);margin-top:12px;max-width:400px;text-align:center;}
     </style>
 </head>
 <body>
@@ -105,7 +44,8 @@
 <div id="loadingOverlay">
     <div class="ld-logo">DATUM 3D</div>
     <div class="ld-spinner"></div>
-    <div class="ld-text" id="loadingMsg">Başlatılıyor...</div>
+    <div class="ld-text" id="loadingMsg">Sahne yükleniyor...</div>
+    <div class="ld-err" id="loadingErr"></div>
 </div>
 
 <div id="cesiumContainer"></div>
@@ -118,34 +58,20 @@
 
 <div id="sidePanel">
     <div class="panel-section">
-        <div class="section-label">Katmanlar</div>
-        <div id="layerList"></div>
-    </div>
-    <div class="panel-section">
         <div class="section-label">Durum</div>
         <div class="status-row">
-            <span class="status-key">3D Tiles</span>
+            <span class="status-key">Tileset</span>
             <span class="status-val" id="tilesStatus">Yükleniyor...</span>
         </div>
         <div class="status-row">
-            <span class="status-key">Yüklenen</span>
-            <span class="status-val" id="objCount">—</span>
+            <span class="status-key">Model</span>
+            <span class="status-val" id="modelCount">—</span>
         </div>
         <div id="loadBar"></div>
     </div>
     <div class="panel-section">
-        <button onclick="flyToScene()" style="
-            width:100%; background:linear-gradient(90deg,var(--accent),var(--accent2));
-            border:none; border-radius:6px; padding:8px; font-family:'JetBrains Mono',monospace;
-            font-size:11px; color:#000; cursor:pointer; font-weight:600; margin-bottom:6px;">
-            ▶ Sahneyi Göster
-        </button>
-        <button onclick="viewer.camera.flyHome(1.5)" style="
-            width:100%; background:transparent; border:1px solid var(--border);
-            border-radius:6px; padding:7px; font-family:'JetBrains Mono',monospace;
-            font-size:11px; color:var(--muted); cursor:pointer;">
-            ↺ Kamerayı Sıfırla
-        </button>
+        <button onclick="flyToScene()" style="width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#000;cursor:pointer;font-weight:600;margin-bottom:6px;">▶ Sahneyi Göster</button>
+        <button onclick="viewer.camera.flyHome(1.5)" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:6px;padding:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;">↺ Kamerayı Sıfırla</button>
     </div>
 </div>
 
@@ -155,27 +81,17 @@
     <div><span id="cAlt">—</span> m</div>
 </div>
 
-<div id="featureInfo">
-    <div class="fi-close" onclick="this.parentElement.style.display='none'">✕</div>
-    <div class="fi-title">Obje Detayı</div>
-    <div id="fiContent"></div>
-</div>
-
 <script>
 // ================================================================
-// ✏️  BURAYA YENİ ASSET EKLE
+// AYARLAR
 // ================================================================
 Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YjJkMWY0Yi1iYWY0LTQzN2YtYmRjNS1lMjI3YWNlNjg0YTIiLCJpZCI6NDAxMTY3LCJpYXQiOjE3NzMxMjQzNDN9.VCxXEJpbmru_EdzEKbyeHeyTrQ-6h-MSX_Cue5pOiI8";
 
-const ASSETS = [
-    { id: 4525914, label: "Arabian Area", color: "#00e5b0" },
-    // { id: 1234567, label: "Yeni Bina",   color: "#0099ff" },
-];
+// Tileset yolu — GLB'ler ile aynı klasörde
+const TILESET_URL = "./tileset.json";
 // ================================================================
 
-let viewer;
-const tilesets = [];
-const COLORS = ["#00e5b0","#0099ff","#ff6b35","#a855f7","#f59e0b","#ec4899"];
+let viewer, tileset;
 
 async function init() {
     viewer = new Cesium.Viewer("cesiumContainer", {
@@ -185,8 +101,11 @@ async function init() {
         homeButton: false, sceneModePicker: true,
         navigationHelpButton: false, infoBox: false, selectionIndicator: false,
     });
-    viewer.scene.globe.enableLighting = true;
 
+    viewer.scene.globe.enableLighting = true;
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+
+    // Koordinat takibi
     viewer.scene.canvas.addEventListener("mousemove", e => {
         const ray = viewer.camera.getPickRay(new Cesium.Cartesian2(e.offsetX, e.offsetY));
         if (!ray) return;
@@ -198,71 +117,50 @@ async function init() {
         document.getElementById("cAlt").textContent = c.height.toFixed(1);
     });
 
-    viewer.screenSpaceEventHandler.setInputAction(e => {
-        const f = viewer.scene.pick(e.position);
-        if (!Cesium.defined(f)) { document.getElementById("featureInfo").style.display="none"; return; }
-        if (f instanceof Cesium.Cesium3DTileFeature) {
-            const ids = f.getPropertyIds();
-            const html = ids.length
-                ? ids.map(id => `<div class="status-row"><span class="status-key">${id}</span><span class="status-val">${f.getProperty(id)}</span></div>`).join("")
-                : '<span style="color:var(--muted)">Özellik yok.</span>';
-            document.getElementById("fiContent").innerHTML = html;
-            document.getElementById("featureInfo").style.display = "block";
-        }
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    try {
+        document.getElementById("loadingMsg").textContent = "tileset.json yükleniyor...";
+        document.getElementById("loadBar").style.width = "30%";
 
-    let loaded = 0;
-    const list = document.getElementById("layerList");
+        tileset = await Cesium.Cesium3DTileset.fromUrl(TILESET_URL, {
+            maximumScreenSpaceError: 16,
+        });
 
-    for (let i = 0; i < ASSETS.length; i++) {
-        const a = ASSETS[i];
-        const color = a.color || COLORS[i % COLORS.length];
-        document.getElementById("loadingMsg").textContent = `Yükleniyor: ${a.label}...`;
-        document.getElementById("loadBar").style.width = `${(i / ASSETS.length) * 100}%`;
+        viewer.scene.primitives.add(tileset);
+        document.getElementById("loadBar").style.width = "80%";
+        document.getElementById("loadingMsg").textContent = "Kamera konumlandırılıyor...";
 
-        try {
-            const ts = await Cesium.Cesium3DTileset.fromIonAssetId(a.id);
-            viewer.scene.primitives.add(ts);
-            tilesets.push({ ts, visible: true, color });
-            if (i === 0) await viewer.zoomTo(ts);
-            loaded++;
+        await viewer.zoomTo(tileset);
 
-            const idx = tilesets.length - 1;
-            const el = document.createElement("div");
-            el.className = "layer-item";
-            el.innerHTML = `
-                <div class="layer-left">
-                    <div class="layer-dot" style="background:${color}"></div>
-                    <span>${a.label}</span>
-                </div>
-                <div class="toggle on" id="t${idx}"></div>`;
-            el.querySelector(".toggle").onclick = () => {
-                tilesets[idx].visible = !tilesets[idx].visible;
-                tilesets[idx].ts.show = tilesets[idx].visible;
-                document.getElementById(`t${idx}`).classList.toggle("on", tilesets[idx].visible);
-            };
-            list.appendChild(el);
-        } catch(e) {
-            console.error(`Asset ${a.id} yüklenemedi:`, e);
-        }
+        // Bilgi güncelle
+        const bs = tileset.boundingSphere;
+        const c  = Cesium.Cartographic.fromCartesian(bs.center);
+        const lat = Cesium.Math.toDegrees(c.latitude).toFixed(4);
+        const lon = Cesium.Math.toDegrees(c.longitude).toFixed(4);
+
+        document.getElementById("tilesStatus").textContent = "✓ Yüklendi";
+        document.getElementById("tilesStatus").style.color = "var(--accent)";
+        document.getElementById("modelCount").textContent = lat + "°N " + lon + "°E";
+        document.getElementById("loadBar").style.width = "100%";
+
+        // Overlay kaldır
+        const ov = document.getElementById("loadingOverlay");
+        ov.style.opacity = "0";
+        setTimeout(() => ov.style.display = "none", 600);
+
+    } catch(e) {
+        document.getElementById("loadingMsg").textContent = "Yükleme hatası";
+        document.getElementById("loadingErr").textContent = e.message;
+        document.getElementById("tilesStatus").textContent = "✗ Hata";
+        document.getElementById("tilesStatus").style.color = "var(--warn)";
+        console.error(e);
     }
-
-    document.getElementById("tilesStatus").textContent = `✓ ${loaded}/${ASSETS.length}`;
-    document.getElementById("objCount").textContent = `${loaded} asset`;
-    document.getElementById("loadBar").style.width = "100%";
-
-    const ov = document.getElementById("loadingOverlay");
-    ov.style.opacity = "0";
-    setTimeout(() => ov.style.display = "none", 600);
 }
 
 function flyToScene() {
-    if (tilesets[0]) viewer.zoomTo(tilesets[0].ts);
+    if (tileset) viewer.zoomTo(tileset);
 }
 
-init().catch(e => {
-    document.getElementById("loadingMsg").textContent = "Hata: " + e.message;
-});
+init();
 </script>
 </body>
 </html>
