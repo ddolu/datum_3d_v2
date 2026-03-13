@@ -1,166 +1,392 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datum 3D — Sahne Görüntüleyici</title>
-
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --bg:#080c10; --panel:rgba(8,12,16,0.88); --border:rgba(255,255,255,0.07);
-            --accent:#00e5b0; --accent2:#0099ff; --warn:#ff6b35; --text:#e8edf2; --muted:#6b7a8d;
-        }
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-        html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;overflow:hidden;}
-        #cesiumContainer{width:100%;height:100%;}
-        #topBar{position:absolute;top:0;left:0;right:0;height:48px;background:var(--panel);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:1000;}
-        .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-        .divider{width:1px;height:20px;background:var(--border);}
-        .scene-name{font-size:12px;color:var(--muted);}
-        #sidePanel{position:absolute;top:60px;left:12px;width:270px;background:var(--panel);border:1px solid var(--border);border-radius:10px;backdrop-filter:blur(20px);z-index:999;overflow:hidden;}
-        .panel-section{padding:14px 16px;border-bottom:1px solid var(--border);}
-        .panel-section:last-child{border-bottom:none;}
-        .section-label{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-        .status-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;}
-        .status-key{color:var(--muted);font-size:11px;}
-        .status-val{color:var(--accent);font-size:10px;text-align:right;}
-        #loadBar{height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .4s;border-radius:1px;margin-top:8px;}
-        #coordBox{position:absolute;bottom:36px;right:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:10px;color:var(--muted);backdrop-filter:blur(16px);z-index:999;line-height:1.8;}
-        #coordBox span{color:var(--accent);}
-        #loadingOverlay{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
-        .ld-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:24px;}
-        .ld-spinner{width:40px;height:40px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
-        @keyframes spin{to{transform:rotate(360deg);}}
-        .ld-text{font-size:12px;color:var(--muted);}
-        .ld-err{font-size:11px;color:var(--warn);margin-top:12px;max-width:400px;text-align:center;}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datum Dijital Ikiz</title>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--bg:#0f172a;--panel:rgba(15,23,42,.94);--card:#1e293b;--border:rgba(71,85,105,.5);--pri:#0ea5e9;--acc:#22d3ee;--txt:#f1f5f9;--mut:#94a3b8;--dim:#64748b;--ok:#34d399;--warn:#fbbf24;--err:#f87171;--hdr:48px;--side:300px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt);overflow:hidden;height:100vh}
+.cesium-viewer-bottom,.cesium-widget-credits,.cesium-viewer .cesium-toolbar{display:none!important}
+@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.vb,.hb{background:0 0;border:1px solid transparent;color:var(--mut);padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;position:relative}
+.vb:hover,.hb:hover{background:var(--card);color:var(--txt);border-color:var(--border)}
+.vb.act{background:var(--pri);color:#fff;border-color:var(--pri)}
+.hb[data-tip]:hover::after{content:attr(data-tip);position:absolute;top:100%;left:50%;transform:translateX(-50%);background:var(--bg);color:var(--txt);padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:9999;border:1px solid var(--border);margin-top:4px}
+#mList::-webkit-scrollbar{width:4px}#mList::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.mi{display:flex;align-items:center;padding:5px 8px;border-radius:5px;gap:7px;cursor:pointer;transition:background .1s;font-size:11px}
+.mi:hover{background:rgba(255,255,255,.05)}
+.ck{width:14px;height:14px;border:2px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ck.on{background:var(--pri);border-color:var(--pri)}
+.ck.on::after{content:'\2713';color:#fff;font-size:8px;font-weight:700}
+.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.st.ok{background:var(--ok)}.st.ld{background:var(--warn);animation:pulse 1s infinite}
+</style>
 </head>
 <body>
 
-<div id="loadingOverlay">
-    <div class="ld-logo">DATUM 3D</div>
-    <div class="ld-spinner"></div>
-    <div class="ld-text" id="loadingMsg">Sahne yükleniyor...</div>
-    <div class="ld-err" id="loadingErr"></div>
+<div id="LD" style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s">
+<div style="font-size:24px;font-weight:700;background:linear-gradient(135deg,var(--pri),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px">Datum Dijital Ikiz</div>
+<div style="width:36px;height:36px;border:3px solid var(--card);border-top-color:var(--pri);border-radius:50%;animation:sp .7s linear infinite"></div>
+<div id="ldMsg" style="margin-top:14px;font-size:12px;color:var(--mut)">Baslatiliyor...</div>
+<div style="margin-top:10px;width:200px;height:3px;background:var(--card);border-radius:2px"><div id="ldFill" style="height:100%;width:0;background:linear-gradient(90deg,var(--pri),var(--acc));border-radius:2px;transition:width .3s"></div></div>
 </div>
 
-<div id="cesiumContainer"></div>
+<header style="height:var(--hdr);background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:14px;z-index:1000;position:relative">
+<div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px">
+<span style="background:linear-gradient(135deg,var(--pri),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700">Datum</span>
+<span style="color:var(--dim);font-weight:400">Dijital Ikiz</span></div>
+<div style="display:flex;background:var(--bg);border-radius:6px;padding:2px;gap:2px;margin-left:24px">
+<button class="vb act" onclick="setView('split')" data-tip="2B ve 3B yan yana">Karsilastir</button>
+<button class="vb" onclick="setView('2d')" data-tip="Sadece 2 boyutlu harita">2B</button>
+<button class="vb" onclick="setView('3d')" data-tip="Sadece 3 boyutlu sahne">3B</button></div>
+<div style="display:flex;gap:4px;margin-left:auto">
+<button class="hb" onclick="flyHome()" data-tip="Tum modelleri goster">Genel Bakis</button>
+<button class="hb" onclick="toggleTerrain()" data-tip="Arazi derinlik testini ac/kapat">Arazi</button>
+<button class="hb" onclick="startMeasure()" data-tip="Iki nokta arasi mesafe olc" id="btnMeasure">Olcum</button>
+<button class="hb" onclick="screenshot()" data-tip="Ekran goruntusunu PNG olarak indir">Ekran Goruntusu</button>
+<button class="hb" onclick="togglePanel()" data-tip="Sol paneli ac/kapat">Panel</button></div>
+</header>
 
-<div id="topBar">
-    <div class="logo">DATUM 3D</div>
-    <div class="divider"></div>
-    <div class="scene-name">3D Sahne Görüntüleyici</div>
+<div style="display:flex;height:calc(100vh - var(--hdr))">
+<div id="side" style="width:var(--side);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .3s">
+<div style="padding:10px 14px;border-bottom:1px solid var(--border)"><input id="search" type="text" placeholder="Model ara..." oninput="filterList(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--txt);font-size:11px;font-family:inherit;outline:none"></div>
+<div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--mut)">3B Modeller</span><span id="cnt" style="background:var(--card);color:var(--dim);padding:1px 7px;border-radius:10px;font-size:10px">0</span></div>
+<div style="display:flex;gap:4px"><button class="hb" style="flex:1;font-size:10px" onclick="toggleAll(true)">Hepsini Ac</button><button class="hb" style="flex:1;font-size:10px" onclick="toggleAll(false)">Hepsini Kapat</button></div></div>
+<div id="mList" style="flex:1;overflow-y:auto;padding:4px 8px"></div>
+
+<div style="padding:10px 14px;border-top:1px solid var(--border)">
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin-bottom:8px">Katmanlar <span style="background:var(--card);padding:1px 6px;border-radius:8px;font-size:9px;color:var(--dim)">YAKINDA</span></div>
+<div class="mi" style="opacity:.4"><div class="ck"></div><span class="nm">Yollar</span></div>
+<div class="mi" style="opacity:.4"><div class="ck"></div><span class="nm">Yol Hasar Noktalari</span></div>
+<div class="mi" style="opacity:.4"><div class="ck"></div><span class="nm">Sensor / IoT</span></div>
+<div class="mi" style="opacity:.4"><div class="ck"></div><span class="nm">Bakim Verileri</span></div></div>
+<div style="padding:10px 14px;border-top:1px solid var(--border)">
+<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin-bottom:8px">Ayarlar</div>
+<div class="mi" onclick="togShadow()"><div class="ck" id="ckShd"></div><span class="nm">Golgeler</span></div>
+<div class="mi" onclick="togAtmo()"><div class="ck on" id="ckAtm"></div><span class="nm">Atmosfer</span></div>
+<div class="mi" onclick="toggleTerrain()"><div class="ck" id="ckDep"></div><span class="nm">Derinlik Testi</span></div></div>
 </div>
 
-<div id="sidePanel">
-    <div class="panel-section">
-        <div class="section-label">Durum</div>
-        <div class="status-row">
-            <span class="status-key">Tileset</span>
-            <span class="status-val" id="tilesStatus">Yükleniyor...</span>
-        </div>
-        <div class="status-row">
-            <span class="status-key">Model</span>
-            <span class="status-val" id="modelCount">—</span>
-        </div>
-        <div id="loadBar"></div>
-    </div>
-    <div class="panel-section">
-        <button onclick="flyToScene()" style="width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#000;cursor:pointer;font-weight:600;margin-bottom:6px;">▶ Sahneyi Göster</button>
-        <button onclick="viewer.camera.flyHome(1.5)" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:6px;padding:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;">↺ Kamerayı Sıfırla</button>
-    </div>
-</div>
+<div id="mapWrap" style="flex:1;display:flex;position:relative">
+<div id="p2d" style="flex:1;position:relative;border-right:2px solid var(--bg)">
+<div id="leafMap" style="width:100%;height:100%"></div>
+<div style="position:absolute;top:8px;right:8px;background:rgba(15,23,42,.85);color:var(--dim);padding:3px 9px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;z-index:100;pointer-events:none">2B Harita</div></div>
+<div id="splitter" style="width:5px;background:var(--bg);cursor:col-resize;z-index:10"></div>
+<div id="p3d" style="flex:1;position:relative">
+<div id="cesiumC" style="width:100%;height:100%"></div>
+<div style="position:absolute;top:8px;right:8px;background:rgba(15,23,42,.85);color:var(--dim);padding:3px 9px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;z-index:100;pointer-events:none">3B Sahne</div>
+<div onclick="resetNorth()" style="position:absolute;top:8px;left:8px;width:40px;height:40px;background:rgba(30,41,59,.85);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer" title="Kuzeye don"><span id="cmpArr" style="font-size:16px;font-weight:700;color:var(--err);transition:transform .3s">&#9650;</span></div>
+<div style="position:absolute;top:56px;left:8px;display:flex;flex-direction:column;gap:1px;z-index:100">
+<button onclick="viewer.camera.zoomIn(viewer.camera.positionCartographic.height*.3)" style="width:32px;height:32px;background:rgba(30,41,59,.85);border:1px solid var(--border);border-radius:6px 6px 0 0;color:var(--txt);cursor:pointer;font-size:16px" title="Yakinlastir">+</button>
+<button onclick="viewer.camera.zoomOut(viewer.camera.positionCartographic.height*.5)" style="width:32px;height:32px;background:rgba(30,41,59,.85);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--txt);cursor:pointer;font-size:16px" title="Uzaklastir">-</button></div>
 
-<div id="coordBox">
-    <div><span id="cLat">—</span> °N</div>
-    <div><span id="cLon">—</span> °E</div>
-    <div><span id="cAlt">—</span> m</div>
+<div id="info" style="position:absolute;bottom:40px;left:8px;width:240px;background:rgba(30,41,59,.95);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:10px;padding:12px;z-index:100;display:none">
+<button onclick="document.getElementById('info').style.display='none'" style="position:absolute;top:4px;right:8px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px">x</button>
+<div id="infoT" style="font-size:13px;font-weight:600;margin-bottom:6px"></div>
+<div id="infoB" style="font-size:10px;color:var(--mut);font-family:monospace;line-height:1.8"></div></div>
+<div id="measureBox" style="position:absolute;top:8px;left:56px;background:rgba(30,41,59,.95);border:1px solid var(--acc);border-radius:8px;padding:8px 14px;z-index:100;display:none;font-size:11px">
+<span id="measureTxt" style="color:var(--acc)">Baslangic noktasini secin...</span>
+<button onclick="cancelMeasure()" style="background:none;border:none;color:var(--err);cursor:pointer;margin-left:8px;font-size:11px">Iptal</button></div>
 </div>
-
+<div style="position:absolute;bottom:0;left:0;right:0;height:26px;background:rgba(15,23,42,.9);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:14px;font-size:10px;color:var(--dim);font-family:monospace;z-index:100">
+<div style="display:flex;align-items:center;gap:4px"><div id="stDot" style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></div><span id="stTxt">Yukleniyor...</span></div>
+<div id="coords">Boylam: -- Enlem: -- Yukseklik: --</div>
+<div id="fps" style="margin-left:auto">-- FPS</div></div>
+</div></div>
 <script>
-// ================================================================
-// AYARLAR
-// ================================================================
-Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YjJkMWY0Yi1iYWY0LTQzN2YtYmRjNS1lMjI3YWNlNjg0YTIiLCJpZCI6NDAxMTY3LCJpYXQiOjE3NzMxMjQzNDN9.VCxXEJpbmru_EdzEKbyeHeyTrQ-6h-MSX_Cue5pOiI8";
+var MODELS=[{"uri": "casino_land_Import3D_Project_CopyFeatures.glb", "tx": 3123478.119831034, "ty": 3711505.461373659, "tz": 4127213.838145107}, {"uri": "rixos_Import3DFiles_Project_CopyFeatures.glb", "tx": 3123446.5806898177, "ty": 3711421.0836752383, "tz": 4127312.9159303205}, {"uri": "casino_Import3DFiles_Project_CopyFeatures.glb", "tx": 3123518.6940977285, "ty": 3711515.885538549, "tz": 4127174.0252244887}, {"uri": "testcaspian_Import3D_Project_CopyFeatures.glb", "tx": 3119407.9135889774, "ty": 3713754.080520418, "tz": 4128262.2238036008}, {"uri": "prime_resd1_Import3DFiles1.glb", "tx": 3123670.44935593, "ty": 3711632.3934550798, "tz": 4126955.86013043}, {"uri": "prime_resd1_Import3DFiles.glb", "tx": 3123648.2365331, "ty": 3711561.736036889, "tz": 4127035.680187385}, {"uri": "prime_resd_Import3DFiles1.glb", "tx": 3123609.4508471354, "ty": 3711667.7930207653, "tz": 4126970.0959318345}, {"uri": "prime_resd_Import3DFiles.glb", "tx": 3123588.1174282315, "ty": 3711596.5420792745, "tz": 4127049.7850642405}, {"uri": "Paradise_area_Import3DFiles.glb", "tx": 3123570.8334264825, "ty": 3711646.303873602, "tz": 4127018.3256758573}, {"uri": "paradise_b2_Import3DFiles.glb", "tx": 3123483.668384365, "ty": 3711698.5327951624, "tz": 4127037.1966066957}, {"uri": "Paradise_Import3DFiles.glb", "tx": 3123544.0414150227, "ty": 3711663.2069775136, "tz": 4127023.3674886487}, {"uri": "yer_Import3DFiles.glb", "tx": 3122050.4059588364, "ty": 3712604.6349229356, "tz": 4127304.8644485995}, {"uri": "THREE_PLAN_Import3DFiles.glb", "tx": 3122419.826055553, "ty": 3712364.4520135927, "tz": 4127241.87156422}, {"uri": "Monaco_B4_Import3DFiles2.glb", "tx": 3122743.692728499, "ty": 3712125.0347908046, "tz": 4127212.383338461}, {"uri": "Monaco_B4_Import3DFiles1.glb", "tx": 3122796.5068641463, "ty": 3712100.3170526735, "tz": 4127194.772980031}, {"uri": "Monaco_B4_Import3DFiles.glb", "tx": 3122849.2348240544, "ty": 3712072.124259294, "tz": 4127180.3311130474}, {"uri": "Monaco_B1_Import3DFiles2.glb", "tx": 3122752.2939206553, "ty": 3712058.81328123, "tz": 4127265.0808371096}, {"uri": "Monaco_B1_Import3DFiles1.glb", "tx": 3122788.0957866996, "ty": 3712042.0403889036, "tz": 4127253.1582656545}, {"uri": "Monaco_B1_Import3DFiles.glb", "tx": 3122824.2943289164, "ty": 3712022.861232572, "tz": 4127243.086848619}, {"uri": "Monaco_landsca_Import3DFiles.glb", "tx": 3122788.5073828604, "ty": 3712071.2067019604, "tz": 4127226.792233145}, {"uri": "test_Import3DFiles.glb", "tx": 3122024.757821466, "ty": 3713220.5491904863, "tz": 4126773.7359003457}, {"uri": "prbina2_Import3DFiles.glb", "tx": 3122070.944974628, "ty": 3713149.651117422, "tz": 4126802.393086451}, {"uri": "prbina1_Import3DFiles.glb", "tx": 3122092.702753356, "ty": 3713219.870605331, "tz": 4126723.283316691}, {"uri": "prland_Import3DFiles1.glb", "tx": 3122052.1863417593, "ty": 3713202.5843602885, "tz": 4126769.1805272317}, {"uri": "Digital_land_Import3DFiles.glb", "tx": 3122447.9372034823, "ty": 3712428.603216266, "tz": 4127163.429089519}, {"uri": "Arabian_b10_Import3DFiles.glb", "tx": 3122983.307560667, "ty": 3711947.925992396, "tz": 4127190.518182442}, {"uri": "Arabian_b9_Import3DFiles.glb", "tx": 3122973.321922875, "ty": 3711933.914868751, "tz": 4127210.540582846}, {"uri": "Arabian_b8_Import3DFiles.glb", "tx": 3122961.606405624, "ty": 3711919.3350108285, "tz": 4127232.371084267}, {"uri": "Arabian_b7_3_Import3DFiles.glb", "tx": 3123088.295689057, "ty": 3711876.129556379, "tz": 4127175.745702999}, {"uri": "Arabian_b7_2_Import3DFiles.glb", "tx": 3123069.4425632446, "ty": 3711867.3079601284, "tz": 4127197.7973000356}, {"uri": "Arabian_b7_1_Import3DFiles.glb", "tx": 3123048.7289024177, "ty": 3711863.538015483, "tz": 4127216.7342634355}, {"uri": "Arabian_b7_Import3DFiles.glb", "tx": 3123030.070232448, "ty": 3711855.994092438, "tz": 4127237.4978876193}, {"uri": "Arabian_b6_Import3DFiles.glb", "tx": 3123088.5143882367, "ty": 3711802.9204031895, "tz": 4127240.9818173232}, {"uri": "Arabian_b5_Import3DFiles.glb", "tx": 3123164.474048403, "ty": 3711793.384308984, "tz": 4127192.4056430915}, {"uri": "Arabian_b4_Import3DFiles.glb", "tx": 3123206.998575794, "ty": 3711819.770252775, "tz": 4127136.869509089}, {"uri": "Arabian_b3_Import3DFiles.glb", "tx": 3123118.6818640633, "ty": 3711890.528589904, "tz": 4127140.0422941227}, {"uri": "Arabian_B2_Import3DFiles.glb", "tx": 3123008.4492331655, "ty": 3711975.09738533, "tz": 4127147.3467773637}, {"uri": "Arabian_b1_Import3DFiles.glb", "tx": 3122894.4051564517, "ty": 3712013.47403587, "tz": 4127198.778980809}, {"uri": "arabian_area_Import3DFiles.glb", "tx": 3123044.6723523936, "ty": 3711897.3164887424, "tz": 4127189.6073432984}, {"uri": "Skymall_Import3DFile_Project.glb", "tx": 3122179.9682806605, "ty": 3712698.0399529436, "tz": 4127124.050157663}, {"uri": "Skypark_Import3DFile_Project.glb", "tx": 3122075.8591035483, "ty": 3712758.270682043, "tz": 4127148.4600334275}];
 
-// Tileset yolu — GLB'ler ile aynı klasörde
-const TILESET_URL = "./tileset.json";
-// ================================================================
+Cesium.Ion.defaultAccessToken="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YjJkMWY0Yi1iYWY0LTQzN2YtYmRjNS1lMjI3YWNlNjg0YTIiLCJpZCI6NDAxMTY3LCJpYXQiOjE3NzMxMjQzNDN9.VCxXEJpbmru_EdzEKbyeHeyTrQ-6h-MSX_Cue5pOiI8";
 
-let viewer, tileset;
+var viewer,tileset,leafletMap,hiddenURIs={},leafletMarkers={};
+var measuring=false,measurePt1=null,measureEntity=null;
 
-async function init() {
-    viewer = new Cesium.Viewer("cesiumContainer", {
-        terrain: Cesium.Terrain.fromWorldTerrain(),
-        animation: false, timeline: false,
-        baseLayerPicker: true, geocoder: true,
-        homeButton: false, sceneModePicker: true,
-        navigationHelpButton: false, infoBox: false, selectionIndicator: false,
-    });
+function ldMsg(t){document.getElementById('ldMsg').textContent=t}
+function ldProg(p){document.getElementById('ldFill').style.width=p+'%'}
 
-    viewer.scene.globe.enableLighting = true;
-    viewer.scene.globe.depthTestAgainstTerrain = false;
+function cleanName(uri){
+    return uri.replace('.glb','').replace(/_Import3DFiles?/g,'').replace(/_Import3DFile/g,'')
+    .replace(/_Project/g,'').replace(/_CopyFeatures/g,'').replace(/_/g,' ').trim();
+}
 
-    // Koordinat takibi
-    viewer.scene.canvas.addEventListener("mousemove", e => {
-        const ray = viewer.camera.getPickRay(new Cesium.Cartesian2(e.offsetX, e.offsetY));
-        if (!ray) return;
-        const pos = viewer.scene.globe.pick(ray, viewer.scene);
-        if (!pos) return;
-        const c = Cesium.Cartographic.fromCartesian(pos);
-        document.getElementById("cLat").textContent = Cesium.Math.toDegrees(c.latitude).toFixed(6);
-        document.getElementById("cLon").textContent = Cesium.Math.toDegrees(c.longitude).toFixed(6);
-        document.getElementById("cAlt").textContent = c.height.toFixed(1);
-    });
+function getModelPos(m){
+    var c3=new Cesium.Cartesian3(m.tx,m.ty,m.tz);
+    var cg=Cesium.Cartographic.fromCartesian(c3);
+    return{lon:Cesium.Math.toDegrees(cg.longitude),lat:Cesium.Math.toDegrees(cg.latitude),alt:cg.height};
+}
 
-    try {
-        document.getElementById("loadingMsg").textContent = "tileset.json yükleniyor...";
-        document.getElementById("loadBar").style.width = "30%";
+async function init(){
+try{
+ldMsg('Cesium baslatiliyor...');ldProg(5);
+viewer=new Cesium.Viewer('cesiumC',{
+    terrain:Cesium.Terrain.fromWorldTerrain(),
+    baseLayerPicker:false,geocoder:false,homeButton:false,
+    sceneModePicker:false,selectionIndicator:false,
+    timeline:false,animation:false,navigationHelpButton:false,
+    fullscreenButton:false,infoBox:false,
+    creditContainer:document.createElement('div'),
+    msaaSamples:4,shadows:false,shouldAnimate:true
+});
+var sc=viewer.scene;
+sc.globe.enableLighting=true;
+sc.fog.enabled=true;sc.fog.density=0.0002;
+sc.skyAtmosphere.show=true;
+sc.globe.depthTestAgainstTerrain=false;
+try{sc.postProcessStages.fxaa.enabled=true}catch(e){}
 
-        tileset = await Cesium.Cesium3DTileset.fromUrl(TILESET_URL, {
-            maximumScreenSpaceError: 16,
-        });
+ldMsg('Uydu goruntusu yukleniyor...');ldProg(15);
+try{var ip=await Cesium.IonImageryProvider.fromAssetId(3);viewer.imageryLayers.addImageryProvider(ip)}catch(e){}
 
-        viewer.scene.primitives.add(tileset);
-        document.getElementById("loadBar").style.width = "80%";
-        document.getElementById("loadingMsg").textContent = "Kamera konumlandırılıyor...";
+// Build UI
+buildModelList();
 
-        await viewer.zoomTo(tileset);
+// Load tileset (correct positioning!)
+ldMsg('3B modeller yukleniyor (tileset)...');ldProg(30);
+tileset=await Cesium.Cesium3DTileset.fromUrl('./tileset.json',{
+    maximumScreenSpaceError:8,
+    maximumMemoryUsage:2048,
+    dynamicScreenSpaceError:true,
+    shadows:Cesium.ShadowMode.ENABLED
+});
+sc.primitives.add(tileset);
 
-        // Bilgi güncelle
-        const bs = tileset.boundingSphere;
-        const c  = Cesium.Cartographic.fromCartesian(bs.center);
-        const lat = Cesium.Math.toDegrees(c.latitude).toFixed(4);
-        const lon = Cesium.Math.toDegrees(c.longitude).toFixed(4);
+// Per-tile visibility control via tileVisible event
+tileset.tileVisible.addEventListener(function(tile){
+    var c=tile.content;
+    if(!c||!c.url)return;
+    var parts=c.url.split('/');
+    var fname=parts[parts.length-1];
+    if(hiddenURIs[fname]){
+        c.show=false;
+    } else {
+        c.show=true;
+    }
+});
 
-        document.getElementById("tilesStatus").textContent = "✓ Yüklendi";
-        document.getElementById("tilesStatus").style.color = "var(--accent)";
-        document.getElementById("modelCount").textContent = lat + "°N " + lon + "°E";
-        document.getElementById("loadBar").style.width = "100%";
 
-        // Overlay kaldır
-        const ov = document.getElementById("loadingOverlay");
-        ov.style.opacity = "0";
-        setTimeout(() => ov.style.display = "none", 600);
+ldProg(80);
+// Mark all models as loaded
+for(var i=0;i<MODELS.length;i++){
+    var stEl=document.getElementById('st'+i);
+    if(stEl)stEl.className='st ok';
+}
 
-    } catch(e) {
-        document.getElementById("loadingMsg").textContent = "Yükleme hatası";
-        document.getElementById("loadingErr").textContent = e.message;
-        document.getElementById("tilesStatus").textContent = "✗ Hata";
-        document.getElementById("tilesStatus").style.color = "var(--warn)";
-        console.error(e);
+// Camera: fly to tileset bounding sphere center, not ocean
+ldMsg('Sahne hazirlaniyor...');ldProg(90);
+await viewer.zoomTo(tileset,new Cesium.HeadingPitchRange(
+    Cesium.Math.toRadians(0),
+    Cesium.Math.toRadians(-40),
+    1500
+));
+
+// Leaflet
+initLeaflet();
+
+// Events
+setupEvents();
+setupCompass();
+setupFPS();
+
+// Done
+ldProg(100);
+document.getElementById('stDot').style.background='var(--ok)';
+document.getElementById('stTxt').textContent=MODELS.length+' model yuklendi';
+var ld=document.getElementById('LD');ld.style.opacity='0';setTimeout(function(){ld.style.display='none'},600);
+
+}catch(e){ldMsg('Hata: '+e.message);console.error(e)}}
+
+function buildModelList(){
+    var list=document.getElementById('mList');
+    document.getElementById('cnt').textContent=MODELS.length;
+    var defaultHidden=['yer_Import3DFiles.glb','test_Import3DFiles.glb'];
+    for(var i=0;i<MODELS.length;i++){
+        var m=MODELS[i];
+        var name=cleanName(m.uri);
+        var isHidden=defaultHidden.indexOf(m.uri)>=0;
+        if(isHidden){hiddenURIs[m.uri]=true}
+        var d=document.createElement('div');
+        d.className='mi';d.dataset.idx=i;d.dataset.name=name.toLowerCase();d.dataset.uri=m.uri;
+        d.innerHTML='<div class="ck'+(isHidden?'':' on')+'" id="ck'+i+'"></div><span class="nm" title="'+m.uri+'">'+name+'</span><div class="st ld" id="st'+i+'"></div>';
+        d.onclick=(function(idx,uri){return function(e){e.stopPropagation();toggleModel(idx,uri)}})(i,m.uri);
+        d.ondblclick=(function(idx){return function(){flyToIdx(idx)}})(i);
+        list.appendChild(d);
     }
 }
 
-function flyToScene() {
-    if (tileset) viewer.zoomTo(tileset);
+function toggleModel(idx,uri){
+    var ck=document.getElementById('ck'+idx);
+    var isOn=ck.classList.toggle('on');
+    if(!isOn){hiddenURIs[uri]=true}else{delete hiddenURIs[uri]}
+    // Force tileset to re-evaluate visibility
+    if(tileset){tileset.makeStyleDirty()}
 }
 
-init();
-</script>
-</body>
-</html>
+function toggleAll(on){
+    for(var i=0;i<MODELS.length;i++){
+        var ck=document.getElementById('ck'+i);
+        if(on){ck.classList.add('on');delete hiddenURIs[MODELS[i].uri]}
+        else{ck.classList.remove('on');hiddenURIs[MODELS[i].uri]=true}
+    }
+    if(tileset){tileset.makeStyleDirty()}
+}
+
+
+function flyToIdx(idx){
+    var m=MODELS[idx];var p=getModelPos(m);
+    viewer.camera.flyTo({
+        destination:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,p.alt+300),
+        orientation:{heading:0,pitch:Cesium.Math.toRadians(-45),roll:0},duration:1.5
+    });
+    if(leafletMap)leafletMap.setView([p.lat,p.lon],17,{animate:true});
+    showInfo(cleanName(m.uri),p.lon,p.lat,p.alt);
+}
+
+function showInfo(name,lon,lat,alt){
+    document.getElementById('infoT').textContent=name;
+    document.getElementById('infoB').innerHTML='Boylam: '+lon.toFixed(6)+'<br>Enlem: '+lat.toFixed(6)+'<br>Yukseklik: '+alt.toFixed(1)+' m';
+    document.getElementById('info').style.display='block';
+}
+
+function initLeaflet(){
+    var bs=tileset.boundingSphere;
+    var c=Cesium.Cartographic.fromCartesian(bs.center);
+    var lat=Cesium.Math.toDegrees(c.latitude),lon=Cesium.Math.toDegrees(c.longitude);
+    leafletMap=L.map('leafMap',{center:[lat,lon],zoom:14,zoomControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'}).addTo(leafletMap);
+    L.control.zoom({position:'bottomright'}).addTo(leafletMap);
+    // Model markers - bigger, more visible
+    for(var i=0;i<MODELS.length;i++){
+        var p=getModelPos(MODELS[i]);
+        var name=cleanName(MODELS[i].uri);
+        var mk=L.circleMarker([p.lat,p.lon],{radius:7,fillColor:'#0ea5e9',fillOpacity:.8,color:'#fff',weight:2})
+            .addTo(leafletMap).bindPopup('<b>'+name+'</b><br>Cift tikla: 3B gorunume git');
+        mk._modelIdx=i;
+        mk.on('dblclick',function(e){
+            var idx=e.target._modelIdx;
+            flyToIdx(idx);
+            L.DomEvent.stopPropagation(e);
+        });
+        leafletMarkers[i]=mk;
+    }
+}
+
+function flyHome(){if(tileset)viewer.zoomTo(tileset,new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-40),1500))}
+function filterList(q){var items=document.querySelectorAll('#mList .mi');var s=q.toLowerCase();items.forEach(function(it){it.style.display=(it.dataset.name||'').includes(s)?'':'none'})}
+function setView(m){
+    var p2=document.getElementById('p2d'),p3=document.getElementById('p3d'),sp=document.getElementById('splitter');
+    document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('act')});
+    event.target.classList.add('act');
+    if(m==='split'){p2.style.display='';p2.style.flex='1';p3.style.display='';p3.style.flex='1';sp.style.display=''}
+    else if(m==='2d'){p2.style.display='';p2.style.flex='1';p3.style.display='none';sp.style.display='none'}
+    else{p2.style.display='none';p3.style.display='';p3.style.flex='1';sp.style.display='none'}
+    setTimeout(function(){if(leafletMap)leafletMap.invalidateSize();if(viewer)viewer.resize()},150);
+}
+function resetNorth(){viewer.camera.flyTo({destination:viewer.camera.positionWC,orientation:{heading:0,pitch:viewer.camera.pitch,roll:0},duration:.5})}
+function togglePanel(){var s=document.getElementById('side');if(s.style.width==='0px'){s.style.width='var(--side)'}else{s.style.width='0px'};setTimeout(function(){if(leafletMap)leafletMap.invalidateSize();if(viewer)viewer.resize()},350)}
+function toggleTerrain(){viewer.scene.globe.depthTestAgainstTerrain=!viewer.scene.globe.depthTestAgainstTerrain;document.getElementById('ckDep').classList.toggle('on')}
+function togShadow(){var c=document.getElementById('ckShd');c.classList.toggle('on');viewer.shadows=c.classList.contains('on')}
+function togAtmo(){var c=document.getElementById('ckAtm');c.classList.toggle('on');viewer.scene.skyAtmosphere.show=c.classList.contains('on')}
+function screenshot(){viewer.render();viewer.canvas.toBlob(function(b){var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='datum3d_'+Date.now()+'.png';a.click();URL.revokeObjectURL(u)})}
+
+
+// MEASURE TOOL
+function startMeasure(){
+    measuring=true;measurePt1=null;
+    document.getElementById('measureBox').style.display='block';
+    document.getElementById('measureTxt').textContent='Baslangic noktasini secin...';
+    document.getElementById('btnMeasure').style.background='var(--acc)';
+    document.getElementById('btnMeasure').style.color='#000';
+    viewer.canvas.style.cursor='crosshair';
+}
+function cancelMeasure(){
+    measuring=false;measurePt1=null;
+    document.getElementById('measureBox').style.display='none';
+    document.getElementById('btnMeasure').style.background='';
+    document.getElementById('btnMeasure').style.color='';
+    viewer.canvas.style.cursor='';
+    if(measureEntity){viewer.entities.remove(measureEntity);measureEntity=null}
+}
+function handleMeasureClick(pos){
+    if(!measurePt1){
+        measurePt1=pos;
+        document.getElementById('measureTxt').textContent='Bitis noktasini secin...';
+    }else{
+        var dist=Cesium.Cartesian3.distance(measurePt1,pos);
+        var txt=dist<1000?(dist.toFixed(1)+' m'):((dist/1000).toFixed(2)+' km');
+        document.getElementById('measureTxt').textContent='Mesafe: '+txt;
+        // Draw line
+        if(measureEntity)viewer.entities.remove(measureEntity);
+        measureEntity=viewer.entities.add({polyline:{positions:[measurePt1,pos],width:3,material:new Cesium.ColorMaterialProperty(Cesium.Color.CYAN.withAlpha(0.8)),clampToGround:true}});
+        measurePt1=null;
+    }
+}
+
+// EVENTS
+function setupEvents(){
+    var h=new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    // Mouse move - coords
+    h.setInputAction(function(mv){
+        var cart=viewer.scene.pickPosition(mv.endPosition);
+        if(cart){var cg=Cesium.Cartographic.fromCartesian(cart);
+        document.getElementById('coords').textContent='Boylam: '+Cesium.Math.toDegrees(cg.longitude).toFixed(6)+' | Enlem: '+Cesium.Math.toDegrees(cg.latitude).toFixed(6)+' | Yukseklik: '+cg.height.toFixed(1)+'m'}
+    },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    // Click - model info OR measure
+    h.setInputAction(function(click){
+        var pos=viewer.scene.pickPosition(click.position);
+        if(measuring&&pos){handleMeasureClick(pos);return}
+        // Check if clicked on a 3D tile
+        var picked=viewer.scene.pick(click.position);
+        if(Cesium.defined(picked)&&picked.tileset===tileset){
+            // Find which model was clicked by proximity
+            if(pos){
+                var cg=Cesium.Cartographic.fromCartesian(pos);
+                var clon=Cesium.Math.toDegrees(cg.longitude),clat=Cesium.Math.toDegrees(cg.latitude);
+                var bestIdx=-1,bestDist=Infinity;
+                for(var i=0;i<MODELS.length;i++){
+                    var mp=getModelPos(MODELS[i]);
+                    var d=Math.sqrt(Math.pow(mp.lon-clon,2)+Math.pow(mp.lat-clat,2));
+                    if(d<bestDist){bestDist=d;bestIdx=i}
+                }
+                if(bestIdx>=0){
+                    var mp2=getModelPos(MODELS[bestIdx]);
+                    showInfo(cleanName(MODELS[bestIdx].uri),mp2.lon,mp2.lat,mp2.alt);
+                }
+            }
+        }else{document.getElementById('info').style.display='none'}
+    },Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Sync 3D->2D
+    var syncing=false;
+    viewer.camera.changed.addEventListener(function(){
+        if(syncing||!leafletMap)return;syncing=true;
+        try{var cg=viewer.camera.positionCartographic;leafletMap.setView([Cesium.Math.toDegrees(cg.latitude),Cesium.Math.toDegrees(cg.longitude)],leafletMap.getZoom(),{animate:false})}catch(e){}
+        syncing=false;
+    });
+}
+
+
+function setupCompass(){
+    viewer.scene.postRender.addEventListener(function(){
+        var h=Cesium.Math.toDegrees(viewer.camera.heading);
+        document.getElementById('cmpArr').style.transform='rotate('+(-h)+'deg)';
+    });
+}
+function setupFPS(){
+    var lt=performance.now(),fc=0;
+    viewer.scene.postRender.addEventListener(function(){
+        fc++;var n=performance.now();if(n-lt>=1000){document.getElementById('fps').textContent=fc+' FPS';fc=0;lt=n}
+    });
+}
+
+window.addEventListener('load',init);
+</script></body></html>
