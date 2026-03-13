@@ -78,6 +78,12 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt
 <div class="mi" style="opacity:.4"><div class="ck"></div><span class="nm">Bakim Verileri</span></div></div>
 <div style="padding:10px 14px;border-top:1px solid var(--border)">
 <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin-bottom:8px">Ayarlar</div>
+<div style="margin-bottom:6px"><span style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px">Altlik Harita</span>
+<select id="basemapSelect" onchange="changeBasemap(this.value)" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 8px;color:var(--txt);font-size:10px;font-family:inherit;cursor:pointer;outline:none">
+<option value="esri" selected>ESRI Uydu (Guncel)</option>
+<option value="cesium">Cesium Ion Uydu</option>
+<option value="osm">OpenStreetMap</option>
+</select></div>
 <div class="mi" onclick="togShadow()"><div class="ck" id="ckShd"></div><span class="nm">Golgeler</span></div>
 <div class="mi" onclick="togAtmo()"><div class="ck on" id="ckAtm"></div><span class="nm">Atmosfer</span></div>
 <div class="mi" onclick="toggleTerrain()"><div class="ck" id="ckDep"></div><span class="nm">Derinlik Testi</span></div></div>
@@ -151,7 +157,13 @@ sc.globe.depthTestAgainstTerrain=false;
 try{sc.postProcessStages.fxaa.enabled=true}catch(e){}
 
 ldMsg('Uydu goruntusu yukleniyor...');ldProg(15);
-try{var ip=await Cesium.IonImageryProvider.fromAssetId(3);viewer.imageryLayers.addImageryProvider(ip)}catch(e){}
+// Default: ESRI World Imagery
+viewer.imageryLayers.removeAll();
+var esriLayer=viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    maximumLevel:19,
+    credit:new Cesium.Credit('Esri, Maxar, Earthstar Geographics')
+}));
 
 // Build UI
 buildModelList();
@@ -431,6 +443,22 @@ function setView(m){
 function resetNorth(){viewer.camera.flyTo({destination:viewer.camera.positionWC,orientation:{heading:0,pitch:viewer.camera.pitch,roll:0},duration:.5})}
 function togglePanel(){var s=document.getElementById('side');if(s.style.width==='0px'){s.style.width='var(--side)'}else{s.style.width='0px'};setTimeout(function(){if(leafletMap)leafletMap.invalidateSize();if(viewer)viewer.resize()},350)}
 function toggleTerrain(){viewer.scene.globe.depthTestAgainstTerrain=!viewer.scene.globe.depthTestAgainstTerrain;document.getElementById('ckDep').classList.toggle('on')}
+function changeBasemap(val){
+    viewer.imageryLayers.removeAll();
+    if(val==='esri'){
+        viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+            url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            maximumLevel:19,credit:new Cesium.Credit('Esri, Maxar, Earthstar Geographics')
+        }));
+    }else if(val==='cesium'){
+        Cesium.IonImageryProvider.fromAssetId(3).then(function(ip){viewer.imageryLayers.addImageryProvider(ip)});
+    }else if(val==='osm'){
+        viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+            url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            maximumLevel:19,credit:new Cesium.Credit('OpenStreetMap')
+        }));
+    }
+}
 function togShadow(){var c=document.getElementById('ckShd');c.classList.toggle('on');viewer.shadows=c.classList.contains('on')}
 function togAtmo(){var c=document.getElementById('ckAtm');c.classList.toggle('on');viewer.scene.skyAtmosphere.show=c.classList.contains('on')}
 function screenshot(){viewer.render();viewer.canvas.toBlob(function(b){var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='datum3d_'+Date.now()+'.png';a.click();URL.revokeObjectURL(u)})}
