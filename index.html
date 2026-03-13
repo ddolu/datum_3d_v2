@@ -107,7 +107,7 @@ var MODELS=[{"uri": "casino_land_Import3D_Project_CopyFeatures.glb", "tx": 31234
 
 Cesium.Ion.defaultAccessToken="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4YjJkMWY0Yi1iYWY0LTQzN2YtYmRjNS1lMjI3YWNlNjg0YTIiLCJpZCI6NDAxMTY3LCJpYXQiOjE3NzMxMjQzNDN9.VCxXEJpbmru_EdzEKbyeHeyTrQ-6h-MSX_Cue5pOiI8";
 
-var viewer,tileset,leafletMap,hiddenURIs={},leafletMarkers={};
+var viewer,leafletMap,hiddenURIs={},leafletMarkers={},modelTilesets={};
 var measuring=false,measurePt1=null,measureEntity=null;
 
 function ldMsg(t){document.getElementById('ldMsg').textContent=t}
@@ -149,44 +149,58 @@ try{var ip=await Cesium.IonImageryProvider.fromAssetId(3);viewer.imageryLayers.a
 // Build UI
 buildModelList();
 
-// Load tileset (correct positioning!)
-ldMsg('3B modeller yukleniyor (tileset)...');ldProg(30);
-tileset=await Cesium.Cesium3DTileset.fromUrl('./tileset.json',{
-    maximumScreenSpaceError:8,
-    maximumMemoryUsage:2048,
-    dynamicScreenSpaceError:true,
-    shadows:Cesium.ShadowMode.ENABLED
-});
-sc.primitives.add(tileset);
-
-// Per-tile visibility control via tileVisible event
-tileset.tileVisible.addEventListener(function(tile){
-    var c=tile.content;
-    if(!c||!c.url)return;
-    var parts=c.url.split('/');
-    var fname=parts[parts.length-1];
-    if(hiddenURIs[fname]){
-        c.show=false;
-    } else {
-        c.show=true;
-    }
-});
-
-
-ldProg(80);
-// Mark all models as loaded
-for(var i=0;i<MODELS.length;i++){
-    var stEl=document.getElementById('st'+i);
-    if(stEl)stEl.className='st ok';
+// Load each model as separate tileset for individual visibility control
+ldMsg('3B modeller yukleniyor...');ldProg(30);
+var defaultHiddenList=['yer_Import3DFiles.glb','test_Import3DFiles.glb'];
+var loadedCount=0;
+for(var mi=0;mi<MODELS.length;mi++){
+    (function(idx){
+        var m=MODELS[idx];
+        var tsFile='./ts_'+m.uri.replace('.glb','.json');
+        Cesium.Cesium3DTileset.fromUrl(tsFile,{
+            maximumScreenSpaceError:8,
+            maximumMemoryUsage:64,
+            dynamicScreenSpaceError:true,
+            shadows:Cesium.ShadowMode.ENABLED
+        }).then(function(ts){
+            sc.primitives.add(ts);
+            modelTilesets[m.uri]=ts;
+            // Apply default hidden
+            if(defaultHiddenList.indexOf(m.uri)>=0){
+                ts.show=false;
+            }
+            loadedCount++;
+            var stEl=document.getElementById('st'+idx);
+            if(stEl)stEl.className='st ok';
+            ldProg(30+Math.round(loadedCount/MODELS.length*50));
+            ldMsg(loadedCount+'/'+MODELS.length+' model yuklendi...');
+        }).catch(function(e){
+            console.warn('Model yuklenemedi:',m.uri,e);
+            loadedCount++;
+            var stEl=document.getElementById('st'+idx);
+            if(stEl){stEl.className='st';stEl.style.background='var(--err)';}
+        });
+    })(mi);
 }
 
-// Camera: fly to tileset bounding sphere center, not ocean
+// Wait for all to load
+await new Promise(function(resolve){
+    var check=setInterval(function(){
+        if(loadedCount>=MODELS.length){clearInterval(check);resolve()}
+    },200);
+});
+
+
+// Camera: fly to first loaded tileset bounding sphere
 ldMsg('Sahne hazirlaniyor...');ldProg(90);
-await viewer.zoomTo(tileset,new Cesium.HeadingPitchRange(
-    Cesium.Math.toRadians(0),
-    Cesium.Math.toRadians(-40),
-    1500
-));
+var firstTs=modelTilesets[MODELS[0].uri];
+if(firstTs){
+    await viewer.zoomTo(firstTs,new Cesium.HeadingPitchRange(
+        Cesium.Math.toRadians(0),
+        Cesium.Math.toRadians(-40),
+        1500
+    ));
+}
 
 // Leaflet
 initLeaflet();
@@ -226,8 +240,9 @@ function toggleModel(idx,uri){
     var ck=document.getElementById('ck'+idx);
     var isOn=ck.classList.toggle('on');
     if(!isOn){hiddenURIs[uri]=true}else{delete hiddenURIs[uri]}
-    // Force tileset to re-evaluate visibility
-    if(tileset){tileset.makeStyleDirty()}
+    // Directly control tileset show property
+    var ts=modelTilesets[uri];
+    if(ts){ts.show=isOn}
 }
 
 function toggleAll(on){
@@ -235,8 +250,9 @@ function toggleAll(on){
         var ck=document.getElementById('ck'+i);
         if(on){ck.classList.add('on');delete hiddenURIs[MODELS[i].uri]}
         else{ck.classList.remove('on');hiddenURIs[MODELS[i].uri]=true}
+        var ts=modelTilesets[MODELS[i].uri];
+        if(ts){ts.show=on}
     }
-    if(tileset){tileset.makeStyleDirty()}
 }
 
 
@@ -257,10 +273,11 @@ function showInfo(name,lon,lat,alt){
 }
 
 function initLeaflet(){
-    var bs=tileset.boundingSphere;
-    var c=Cesium.Cartographic.fromCartesian(bs.center);
-    var lat=Cesium.Math.toDegrees(c.latitude),lon=Cesium.Math.toDegrees(c.longitude);
-    leafletMap=L.map('leafMap',{center:[lat,lon],zoom:14,zoomControl:false});
+    // Use center of all models
+    var allPos=MODELS.map(function(m){return getModelPos(m)});
+    var avgLat=allPos.reduce(function(s,p){return s+p.lat},0)/allPos.length;
+    var avgLon=allPos.reduce(function(s,p){return s+p.lon},0)/allPos.length;
+    leafletMap=L.map('leafMap',{center:[avgLat,avgLon],zoom:14,zoomControl:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'OSM'}).addTo(leafletMap);
     L.control.zoom({position:'bottomright'}).addTo(leafletMap);
     // Model markers - bigger, more visible
@@ -279,7 +296,10 @@ function initLeaflet(){
     }
 }
 
-function flyHome(){if(tileset)viewer.zoomTo(tileset,new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-40),1500))}
+function flyHome(){
+    var firstTs=modelTilesets[MODELS[0].uri];
+    if(firstTs)viewer.zoomTo(firstTs,new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-40),1500));
+}
 function filterList(q){var items=document.querySelectorAll('#mList .mi');var s=q.toLowerCase();items.forEach(function(it){it.style.display=(it.dataset.name||'').includes(s)?'':'none'})}
 function setView(m){
     var p2=document.getElementById('p2d'),p3=document.getElementById('p3d'),sp=document.getElementById('splitter');
@@ -346,7 +366,7 @@ function setupEvents(){
         if(measuring&&pos){handleMeasureClick(pos);return}
         // Check if clicked on a 3D tile
         var picked=viewer.scene.pick(click.position);
-        if(Cesium.defined(picked)&&picked.tileset===tileset){
+        if(Cesium.defined(picked)&&picked.tileset){
             // Find which model was clicked by proximity
             if(pos){
                 var cg=Cesium.Cartographic.fromCartesian(pos);
