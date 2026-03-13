@@ -28,6 +28,13 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt
 .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .st{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .st.ok{background:var(--ok)}.st.ld{background:var(--warn);animation:pulse 1s infinite}
+.grp{margin-bottom:2px}
+.grp-hdr{display:flex;align-items:center;padding:5px 8px;border-radius:5px;gap:6px;cursor:pointer;font-size:11px;font-weight:600;color:var(--txt);transition:background .1s}
+.grp-hdr:hover{background:rgba(255,255,255,.05)}
+.grp-arr{font-size:8px;color:var(--dim);transition:transform .2s;width:10px;text-align:center}
+.grp-arr.open{transform:rotate(90deg)}
+.grp-body{padding-left:12px;overflow:hidden;transition:max-height .25s ease}
+.grp-body.collapsed{max-height:0!important;overflow:hidden}
 </style>
 </head>
 <body>
@@ -222,18 +229,110 @@ function buildModelList(){
     var list=document.getElementById('mList');
     document.getElementById('cnt').textContent=MODELS.length;
     var defaultHidden=['yer_Import3DFiles.glb','test_Import3DFiles.glb'];
-    for(var i=0;i<MODELS.length;i++){
-        var m=MODELS[i];
-        var name=cleanName(m.uri);
-        var isHidden=defaultHidden.indexOf(m.uri)>=0;
-        if(isHidden){hiddenURIs[m.uri]=true}
-        var d=document.createElement('div');
-        d.className='mi';d.dataset.idx=i;d.dataset.name=name.toLowerCase();d.dataset.uri=m.uri;
-        d.innerHTML='<div class="ck'+(isHidden?'':' on')+'" id="ck'+i+'"></div><span class="nm" title="'+m.uri+'">'+name+'</span><div class="st ld" id="st'+i+'"></div>';
-        d.onclick=(function(idx,uri){return function(e){e.stopPropagation();toggleModel(idx,uri)}})(i,m.uri);
-        d.ondblclick=(function(idx){return function(){flyToIdx(idx)}})(i);
-        list.appendChild(d);
-    }
+
+    // Define groups matching the scene structure
+    var GROUPS=[
+        {name:'Premium Residence', uris:['prland_Import3DFiles1.glb','prbina1_Import3DFiles.glb','prbina2_Import3DFiles.glb','test_Import3DFiles.glb']},
+        {name:'Casino', uris:['casino_Import3DFiles_Project_CopyFeatures.glb','rixos_Import3DFiles_Project_CopyFeatures.glb','casino_land_Import3D_Project_CopyFeatures.glb']},
+        {name:'Arabian Ranches', uris:['arabian_area_Import3DFiles.glb','Arabian_b1_Import3DFiles.glb','Arabian_B2_Import3DFiles.glb','Arabian_b3_Import3DFiles.glb','Arabian_b4_Import3DFiles.glb','Arabian_b5_Import3DFiles.glb','Arabian_b6_Import3DFiles.glb','Arabian_b7_Import3DFiles.glb','Arabian_b7_1_Import3DFiles.glb','Arabian_b7_2_Import3DFiles.glb','Arabian_b7_3_Import3DFiles.glb','Arabian_b8_Import3DFiles.glb','Arabian_b9_Import3DFiles.glb','Arabian_b10_Import3DFiles.glb']},
+        {name:'Skypark', uris:['Skypark_Import3DFile_Project.glb','Skymall_Import3DFile_Project.glb']},
+        {name:'Digital', uris:['Digital_land_Import3DFiles.glb']},
+        {name:'Monaco', uris:['Monaco_landsca_Import3DFiles.glb','Monaco_B1_Import3DFiles.glb','Monaco_B1_Import3DFiles1.glb','Monaco_B1_Import3DFiles2.glb','Monaco_B4_Import3DFiles.glb','Monaco_B4_Import3DFiles1.glb','Monaco_B4_Import3DFiles2.glb']},
+        {name:'Harbor', uris:['THREE_PLAN_Import3DFiles.glb','yer_Import3DFiles.glb']},
+        {name:'Paradise Prime 2', uris:['Paradise_Import3DFiles.glb','paradise_b2_Import3DFiles.glb','Paradise_area_Import3DFiles.glb','prime_resd_Import3DFiles.glb','prime_resd_Import3DFiles1.glb','prime_resd1_Import3DFiles.glb','prime_resd1_Import3DFiles1.glb']},
+        {name:'Diger', uris:['testcaspian_Import3D_Project_CopyFeatures.glb']}
+    ];
+
+    // Build uri->index map
+    var uriToIdx={};
+    for(var i=0;i<MODELS.length;i++){uriToIdx[MODELS[i].uri]=i}
+
+    GROUPS.forEach(function(grp){
+        // Filter only existing uris
+        var members=grp.uris.filter(function(u){return uriToIdx[u]!==undefined});
+        if(members.length===0)return;
+
+        var grpDiv=document.createElement('div');
+        grpDiv.className='grp';
+
+        // Group header with checkbox and arrow
+        var hdr=document.createElement('div');
+        hdr.className='grp-hdr';
+        var grpId='grp_'+grp.name.replace(/\s+/g,'_');
+        hdr.innerHTML='<span class="grp-arr open" id="arr_'+grpId+'">&#9654;</span><div class="ck on" id="ck_'+grpId+'"></div><span class="nm">'+grp.name+'</span>';
+        grpDiv.appendChild(hdr);
+
+        // Group body
+        var body=document.createElement('div');
+        body.className='grp-body';
+        body.id='body_'+grpId;
+        body.style.maxHeight='2000px';
+
+        members.forEach(function(uri){
+            var idx=uriToIdx[uri];
+            var m=MODELS[idx];
+            var name=cleanName(m.uri);
+            var isHidden=defaultHidden.indexOf(m.uri)>=0;
+            if(isHidden){hiddenURIs[m.uri]=true}
+            var d=document.createElement('div');
+            d.className='mi';d.dataset.idx=idx;d.dataset.name=name.toLowerCase();d.dataset.uri=m.uri;d.dataset.grp=grpId;
+            d.innerHTML='<div class="ck'+(isHidden?'':' on')+'" id="ck'+idx+'"></div><span class="nm" title="'+m.uri+'">'+name+'</span><div class="st ld" id="st'+idx+'"></div>';
+            d.onclick=(function(i2,u2){return function(e){e.stopPropagation();toggleModel(i2,u2);updateGroupCheck(grpId)}})(idx,uri);
+            d.ondblclick=(function(i2){return function(){flyToIdx(i2)}})(idx);
+            body.appendChild(d);
+        });
+
+        grpDiv.appendChild(body);
+        list.appendChild(grpDiv);
+
+        // Group header click: toggle collapse
+        hdr.querySelector('.grp-arr').onclick=function(e){
+            e.stopPropagation();
+            var arrow=document.getElementById('arr_'+grpId);
+            var bd=document.getElementById('body_'+grpId);
+            arrow.classList.toggle('open');
+            bd.classList.toggle('collapsed');
+        };
+
+        // Group checkbox click: toggle all children
+        hdr.querySelector('.ck').onclick=function(e){
+            e.stopPropagation();
+            var gck=document.getElementById('ck_'+grpId);
+            var turnOn=!gck.classList.contains('on');
+            if(turnOn){gck.classList.add('on')}else{gck.classList.remove('on')}
+            members.forEach(function(uri){
+                var idx2=uriToIdx[uri];
+                var ck2=document.getElementById('ck'+idx2);
+                if(turnOn){ck2.classList.add('on');delete hiddenURIs[uri]}
+                else{ck2.classList.remove('on');hiddenURIs[uri]=true}
+                var ts=modelTilesets[uri];
+                if(ts){ts.show=turnOn}
+            });
+        };
+
+        // Initial group check state
+        updateGroupCheckState(grpId,members,uriToIdx);
+    });
+}
+
+function updateGroupCheck(grpId){
+    // Find all children of this group
+    var items=document.querySelectorAll('[data-grp="'+grpId+'"] .ck');
+    var allOn=true;
+    items.forEach(function(c){if(!c.classList.contains('on'))allOn=false});
+    var gck=document.getElementById('ck_'+grpId);
+    if(gck){if(allOn){gck.classList.add('on')}else{gck.classList.remove('on')}}
+}
+
+function updateGroupCheckState(grpId,members,uriToIdx){
+    var allOn=true;
+    members.forEach(function(uri){
+        var idx=uriToIdx[uri];
+        var ck=document.getElementById('ck'+idx);
+        if(ck&&!ck.classList.contains('on'))allOn=false;
+    });
+    var gck=document.getElementById('ck_'+grpId);
+    if(gck){if(allOn){gck.classList.add('on')}else{gck.classList.remove('on')}}
 }
 
 function toggleModel(idx,uri){
@@ -253,6 +352,10 @@ function toggleAll(on){
         var ts=modelTilesets[MODELS[i].uri];
         if(ts){ts.show=on}
     }
+    // Update all group checkboxes
+    document.querySelectorAll('.grp-hdr .ck').forEach(function(g){
+        if(on){g.classList.add('on')}else{g.classList.remove('on')}
+    });
 }
 
 
@@ -300,7 +403,22 @@ function flyHome(){
     var firstTs=modelTilesets[MODELS[0].uri];
     if(firstTs)viewer.zoomTo(firstTs,new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-40),1500));
 }
-function filterList(q){var items=document.querySelectorAll('#mList .mi');var s=q.toLowerCase();items.forEach(function(it){it.style.display=(it.dataset.name||'').includes(s)?'':'none'})}
+function filterList(q){
+    var s=q.toLowerCase();
+    document.querySelectorAll('#mList .grp').forEach(function(grp){
+        var items=grp.querySelectorAll('.mi');
+        var anyVisible=false;
+        items.forEach(function(it){
+            var show=(it.dataset.name||'').includes(s);
+            it.style.display=show?'':'none';
+            if(show)anyVisible=true;
+        });
+        // Also match group name
+        var hdr=grp.querySelector('.grp-hdr .nm');
+        if(hdr&&hdr.textContent.toLowerCase().includes(s))anyVisible=true;
+        grp.style.display=anyVisible?'':'none';
+    });
+}
 function setView(m){
     var p2=document.getElementById('p2d'),p3=document.getElementById('p3d'),sp=document.getElementById('splitter');
     document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('act')});
