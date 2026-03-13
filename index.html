@@ -180,7 +180,9 @@ for(var mi=0;mi<MODELS.length;mi++){
             maximumScreenSpaceError:8,
             maximumMemoryUsage:64,
             dynamicScreenSpaceError:true,
-            shadows:Cesium.ShadowMode.ENABLED
+            shadows:Cesium.ShadowMode.DISABLED,
+            imageBasedLighting:new Cesium.ImageBasedLighting({imageBasedLightingFactor:new Cesium.Cartesian2(1.0,1.0)}),
+            lightColor:new Cesium.Cartesian3(2.0,2.0,2.0)
         }).then(function(ts){
             sc.primitives.add(ts);
             modelTilesets[m.uri]=ts;
